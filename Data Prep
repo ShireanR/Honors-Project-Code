@@ -1,0 +1,280 @@
+#Import Libraries 
+```{r}
+library(rgdal)
+library(raster)
+library(sp)
+library(ncdf4)
+library(stars)
+library(rasterVis)
+library(lattice)
+library(maptools)
+library(terra)
+```
+#South Africa
+```{r}
+#import Africa .shp file
+Africa <- readOGR("C:/Users/Shirean/Documents/GIS 702/Africa_Boundaries-shp/Africa_Boundaries.shp")
+plot(Africa)
+
+#extract South Africa from the Africa shapefile 
+SA <- Africa[Africa$ISO == "ZAF", ]
+plot(SA)
+```
+#Bathymetry & Slope
+```{r}
+#import bathymetry .tif file
+bath <- raster("C:/Users/Shirean/Documents/GIS 702/Bathymetry/GEBCO_25_Mar_2022_1c78ba877cd2/gebco_2021_tid_n-17.4374997317791_s-40.50000590085983_w2.671876072883604_e43.804693937301636.tif")
+
+#derive the slope raster from the bathymetry raster
+slope <- terrain(bath, opt = 'slope', unit = 'degrees')
+plot(slope)
+
+#save the average as a raster so the previous steps do not need to be run again
+writeRaster(slope, filename = file.path("C:/Users/Shirean/Documents/GIS 702", "slope.tif"), format = "GTiff", overwrite = TRUE)
+```
+ 
+#SSTs .nc files have more than 1 set of values in the raster.
+```{r}
+#import any of the sst .nc files
+a <- nc_open("C:/Users/Shirean/Documents/GIS 702/SST data/SST 1981/19810901120000-ESACCI-L4_GHRSST-SSTdepth-OSTIA-GLOB_CDR2.0-v02.0-fv01.0.nc")
+
+#identify the variable names to identify the data sets each raster holds 
+names(a$var) #we are only interested in the analysed_sst set of values
+
+#import all files in a single folder as a list (the list is used so that each individual file does not have to be imported separately)
+sstlist1981 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 1981", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist1982 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 1982", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist1984 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 1984", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist1985 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 1985", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist1986 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 1986", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist1987 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 1987", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist1988 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 1988", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist1989 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 1989", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist1990 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 1990", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist1991 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 1991", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist1994 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 1994", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist1995 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 1995", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist1996 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 1996", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist1997 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 1997", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist1998 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 1998", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist1999 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 1999", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist2000 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 2000", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist2001 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 2001", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist2002 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 2002", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist2003 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 2003", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist2004 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 2004", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist2005 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 2005", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist2006 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 2006", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist2007 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 2007", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist2008 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 2008", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist2009 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 2009", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist2010 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 2010", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist2011 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 2011", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist2012 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 2012", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist2013 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 2013", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist2014 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 2014", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist2015 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 2015", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist2016 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 2016", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist2017 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 2017", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist2018 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 2018", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist2019 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 2019", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist2020 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 2020", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+sstlist2021 <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/SST data/SST 2021", pattern = '.nc$', all.files = TRUE, full.names = TRUE)
+
+#extract only the "analysed_sst" data and stack the sstlist 
+all1981 <- stack(sstlist1981, varname = "analysed_sst")
+all1982 <- stack(sstlist1982, varname = "analysed_sst")
+all1984 <- stack(sstlist1984, varname = "analysed_sst")
+all1985 <- stack(sstlist1985, varname = "analysed_sst")
+all1986 <- stack(sstlist1986, varname = "analysed_sst")
+all1987 <- stack(sstlist1987, varname = "analysed_sst")
+all1988 <- stack(sstlist1988, varname = "analysed_sst")
+all1989 <- stack(sstlist1989, varname = "analysed_sst")
+all1990 <- stack(sstlist1990, varname = "analysed_sst")
+all1991 <- stack(sstlist1991, varname = "analysed_sst")
+all1994 <- stack(sstlist1994, varname = "analysed_sst")
+all1995 <- stack(sstlist1995, varname = "analysed_sst")
+all1996 <- stack(sstlist1996, varname = "analysed_sst")
+all1997 <- stack(sstlist1997, varname = "analysed_sst")
+all1998 <- stack(sstlist1998, varname = "analysed_sst")
+all1999 <- stack(sstlist1999, varname = "analysed_sst")
+all2000 <- stack(sstlist2000, varname = "analysed_sst")
+all2001 <- stack(sstlist2001, varname = "analysed_sst")
+all2002 <- stack(sstlist2002, varname = "analysed_sst")
+all2003 <- stack(sstlist2003, varname = "analysed_sst")
+all2004 <- stack(sstlist2004, varname = "analysed_sst")
+all2005 <- stack(sstlist2005, varname = "analysed_sst")
+all2006 <- stack(sstlist2006, varname = "analysed_sst")
+all2007 <- stack(sstlist2007, varname = "analysed_sst")
+all2008 <- stack(sstlist2008, varname = "analysed_sst")
+all2009 <- stack(sstlist2009, varname = "analysed_sst")
+all2010 <- stack(sstlist2010, varname = "analysed_sst")
+all2011 <- stack(sstlist2011, varname = "analysed_sst")
+all2012 <- stack(sstlist2012, varname = "analysed_sst")
+all2013 <- stack(sstlist2013, varname = "analysed_sst")
+all2014 <- stack(sstlist2014, varname = "analysed_sst")
+all2015 <- stack(sstlist2015, varname = "analysed_sst")
+all2016 <- stack(sstlist2016, varname = "analysed_sst")
+all2017 <- stack(sstlist2017, varname = "analysed_sst")
+all2018 <- stack(sstlist2018, varname = "analysed_sst")
+all2019 <- stack(sstlist2019, varname = "analysed_sst")
+all2020 <- stack(sstlist2020, varname = "analysed_sst")
+all2021 <- stack(sstlist2021, varname = "analysed_sst")
+
+#crop the raster stacks so that a reduced area is chosen (it will run much faster as there are less cells to calculate)
+#the bathymetry extent was chosen as it includes the focus area - can still be reduced further
+crop1981 <- crop(all1981, bath)
+crop1982 <- crop(all1982, bath)
+crop1984 <- crop(all1984, bath)
+crop1985 <- crop(all1985, bath)
+crop1986 <- crop(all1986, bath)
+crop1987 <- crop(all1987, bath)
+crop1988 <- crop(all1988, bath)
+crop1989 <- crop(all1989, bath)
+crop1990 <- crop(all1990, bath)
+crop1991 <- crop(all1991, bath)
+crop1994 <- crop(all1994, bath)
+crop1995 <- crop(all1995, bath)
+crop1996 <- crop(all1996, bath)
+crop1997 <- crop(all1997, bath)
+crop1998 <- crop(all1998, bath)
+crop1999 <- crop(all1999, bath)
+crop2000 <- crop(all2000, bath)
+crop2001 <- crop(all2001, bath)
+crop2002 <- crop(all2002, bath)
+crop2003 <- crop(all2003, bath)
+crop2004 <- crop(all2004, bath)
+crop2005 <- crop(all2005, bath)
+crop2006 <- crop(all2006, bath)
+crop2007 <- crop(all2007, bath)
+crop2008 <- crop(all2008, bath)
+crop2009 <- crop(all2009, bath)
+crop2010 <- crop(all2010, bath)
+crop2011 <- crop(all2011, bath)
+crop2012 <- crop(all2012, bath)
+crop2013 <- crop(all2013, bath)
+crop2014 <- crop(all2014, bath)
+crop2015 <- crop(all2015, bath)
+crop2016 <- crop(all2016, bath)
+crop2017 <- crop(all2017, bath)
+crop2018 <- crop(all2018, bath)
+crop2019 <- crop(all2019, bath)
+crop2020 <- crop(all2020, bath)
+crop2021 <- crop(all2021, bath)
+
+#calculate average SST per year 
+avg1981 <- calc(crop1981, fun = mean, na.rm = TRUE)
+avg1982 <- calc(crop1982, fun = mean, na.rm = TRUE)
+avg1984 <- calc(crop1984, fun = mean, na.rm = TRUE)
+avg1985 <- calc(crop1985, fun = mean, na.rm = TRUE)
+avg1986 <- calc(crop1986, fun = mean, na.rm = TRUE)
+avg1987 <- calc(crop1987, fun = mean, na.rm = TRUE)
+avg1988 <- calc(crop1988, fun = mean, na.rm = TRUE)
+avg1989 <- calc(crop1989, fun = mean, na.rm = TRUE)
+avg1990 <- calc(crop1990, fun = mean, na.rm = TRUE)
+avg1991 <- calc(crop1991, fun = mean, na.rm = TRUE)
+avg1994 <- calc(crop1994, fun = mean, na.rm = TRUE)
+avg1995 <- calc(crop1995, fun = mean, na.rm = TRUE)
+avg1996 <- calc(crop1996, fun = mean, na.rm = TRUE)
+avg1997 <- calc(crop1997, fun = mean, na.rm = TRUE)
+avg1998 <- calc(crop1998, fun = mean, na.rm = TRUE)
+avg1999 <- calc(crop1999, fun = mean, na.rm = TRUE)
+avg2000 <- calc(crop2000, fun = mean, na.rm = TRUE)
+avg2001 <- calc(crop2001, fun = mean, na.rm = TRUE)
+avg2002 <- calc(crop2002, fun = mean, na.rm = TRUE)
+avg2003 <- calc(crop2003, fun = mean, na.rm = TRUE)
+avg2004 <- calc(crop2004, fun = mean, na.rm = TRUE)
+avg2005 <- calc(crop2005, fun = mean, na.rm = TRUE)
+avg2006 <- calc(crop2006, fun = mean, na.rm = TRUE)
+avg2007 <- calc(crop2007, fun = mean, na.rm = TRUE)
+avg2008 <- calc(crop2008, fun = mean, na.rm = TRUE)
+avg2009 <- calc(crop2009, fun = mean, na.rm = TRUE)
+avg2010 <- calc(crop2010, fun = mean, na.rm = TRUE)
+avg2011 <- calc(crop2011, fun = mean, na.rm = TRUE)
+avg2012 <- calc(crop2012, fun = mean, na.rm = TRUE)
+avg2013 <- calc(crop2013, fun = mean, na.rm = TRUE)
+avg2014 <- calc(crop2014, fun = mean, na.rm = TRUE)
+avg2015 <- calc(crop2015, fun = mean, na.rm = TRUE)
+avg2016 <- calc(crop2016, fun = mean, na.rm = TRUE)
+avg2017 <- calc(crop2017, fun = mean, na.rm = TRUE)
+avg2018 <- calc(crop2018, fun = mean, na.rm = TRUE)
+avg2019 <- calc(crop2019, fun = mean, na.rm = TRUE)
+avg2020 <- calc(crop2020, fun = mean, na.rm = TRUE)
+avg2021 <- calc(crop2021, fun = mean, na.rm = TRUE)
+
+#stack all the avgSST files
+allSST <- stack(avg1981, avg1982, avg1984, avg1985, avg1986, avg1987, avg1988, avg1989, avg1990, avg1991, avg1994, avg1995, avg1996, avg1997, avg1998, avg1999, avg2000,avg2001, avg2002, avg2003, avg2004, avg2005, avg2006, avg2007, avg2008, avg2009, avg2010, avg2011, avg2012, avg2013, avg2014, avg2015, avg2016, avg2017, avg2018, avg2019, avg2020, avg2021)
+
+#calculate the final average SSTs
+avgAllSST <- calc(allSST, fun = mean, na.rm = TRUE)
+
+#displlay this average
+plot(avgAllSST)
+
+#write the raster to a TIFF (for later use so the previous steps do not have to be run again)
+writeRaster(avgAllSST, filename = file.path("C:/Users/Shirean/Documents/GIS 702", "avgSST.tiff"), format = "GTiff", overwrite = TRUE)
+```
+#Salinity 
+```{r}
+#import the salinity .nc file
+salinity <- nc_open("C:/Users/Shirean/Documents/GIS 702/Sailinity & Velocity 2020-2022.nc")
+
+#identify the variable names to identify the data sets each raster holds 
+names(salinity$var) #we are only interested in the so set of values
+
+ 
+#extract only the "so" data
+avgSalinity <- raster("C:/Users/Shirean/Documents/GIS 702/Sailinity & Velocity 2020-2022.nc", varname = "so")
+#dont need to calculate the average cause it is already a calculate the average 
+plot(avgSalinity)
+
+#save the average as a raster so the previous steps do not need to be run again
+writeRaster(avgSalinity, filename = file.path("C:/Users/Shirean/Documents/GIS 702", "avgSalinity.tiff"), format = "GTiff", overwrite = TRUE)
+```
+#Eastward Seawater Velocity 
+```{r}
+#import the salinity .nc file
+Evelocity <- nc_open("C:/Users/Shirean/Documents/GIS 702/Sailinity & Velocity 2020-2022.nc")
+
+#identify the variable names to identify the data sets each raster holds 
+names(Nvelocity$var) #we are only interested in the so set of values
+
+#extract only the "uo" data
+avgEvelocity <- raster("C:/Users/Shirean/Documents/GIS 702/Sailinity & Velocity 2020-2022.nc", varname = "uo")
+#dont need to calculate the average cause it is already a calculate the average 
+plot(avgEvelocity)
+
+#save the average as a raster so the previous steps do not need to be run again
+writeRaster(avgEvelocity, filename = file.path("C:/Users/Shirean/Documents/GIS 702", "avgEvelocity.tiff"), format = "GTiff", overwrite = TRUE)
+```
+#Northward Seawater Velocity 
+```{r}
+#import the salinity .nc file
+Nvelocity <- nc_open("C:/Users/Shirean/Documents/GIS 702/Sailinity & Velocity 2020-2022.nc")
+
+#identify the variable names to identify the data sets each raster holds 
+names(Nvelocity$var) #we are only interested in the so set of values
+
+#extract only the "vo" data
+avgNvelocity <- raster("C:/Users/Shirean/Documents/GIS 702/Sailinity & Velocity 2020-2022.nc", varname = "vo")
+#dont need to calculate the average cause it is already a calculate the average 
+plot(avgNvelocity)
+
+#save the average as a raster so the previous steps do not need to be run again
+writeRaster(avgNvelocity, filename = file.path("C:/Users/Shirean/Documents/GIS 702", "avgNvelocity.tiff"), format = "GTiff", overwrite = TRUE)
+```
+#Chlorophyll 
+```{r}
+#import all files in a single folder as a list 
+chlorolist <- list.files(path = "C:/Users/Shirean/Documents/GIS 702/Chlorophyll data", pattern = '.TIFF$', all.files = TRUE, full.names = TRUE)
+
+#stack the chlorolist 
+chloro <- stack(chlorolist)
+ 
+#calculate average chlorophyll raster layer
+avgChloro <- mean(chloro)
+plot(avgChloro)
+
+#save the average as a raster so the previous steps do not need to be run again
+writeRaster(avgChloro, filename = file.path("C:/Users/Shirean/Documents/GIS 702/Chlorophyll data", "avgChloro.tiff"), format = "GTiff", overwrite = TRUE)
+```
