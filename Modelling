@@ -1,0 +1,121 @@
+#Import Libraries 
+```{r}
+library(raster)
+library(sp)
+library(rgdal)
+library(sdm)
+library(dismo)
+library(rJava)
+library(SSDM)
+```
+#Import SRW thinned data
+```{r}
+thinSRW <- shapefile("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/SRW/thinedSRWshape.shp")
+#change the occurrence spatial data frame to a data frame 
+thinSRW = as.data.frame(thinSRW)
+```
+#Species Distribution Modeling 
+```{r}
+#this makes sure that the results are the same each time the model is run
+set.seet(123)
+
+RF <- modelling('RF', thinSRW, Env, Xcol = "x", Ycol = "y", axes.metric = "AUC")
+plot(RF)
+#save projection as a raster 
+writeRaster(RF@projection, “RFmodel.tif”, format = “GTiff”)
+
+MARS <- modelling('MARS', thinSRW, Env, Xcol = "x", Ycol = "y", axes.metric = "AUC")
+plot(MARS)
+
+GLM <- modelling('GLM', thinSRW, Env, Xcol = "x", Ycol = "y", axes.metric = "AUC")
+plot(GLM)
+
+GBM <- modelling('GBM', thinSRW, Env, Xcol = "x", Ycol = "y", axes.metric = "AUC")
+plot(GBM)
+
+CTA <- modelling('CTA', thinSRW, Env, Xcol = "x", Ycol = "y", axes.metric = "AUC")
+plot(CTA)
+
+ANN <- modelling('ANN', thinSRW, Env, Xcol = "x", Ycol = "y", axes.metric = "AUC")
+plot(ANN)
+
+SVM <- modelling('SVM', thinSRW, Env, Xcol = "x", Ycol = "y", axes.metric = "AUC")
+plot(SVM)
+```
+#Ensemble Species Distribution Model  
+```{r}
+set.seet(123)
+
+ESDM <- ensemble_modelling(c("CTA", "SVM", "GLM", "MARS", "GBM", "RF", "ANN"), 
+                           thinSRW, Env,  Xcol = 'x', Ycol = 'y', 
+                           save = TRUE, 
+                           path = "C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/",
+                           trees = 1000, 
+                           ensemble.metric = 'AUC',
+                           cv = 'holdout', 
+                           cv.param = c(0.7,3),
+                           ensemble.thresh = 0.7,
+                           final.fit.data = "holdout",
+                           SDM.projections = TRUE, 
+                           gbm.args = list(n.trees=1500),
+                           tmp = FALSE, 
+                           verbose = TRUE, 
+                           silent = TRUE)
+plot(ESDM)
+```
+#Model Interpretation
+```{r}
+RF@evaluation
+RF@variable.importance
+
+MARS@evaluation
+MARS@variable.importance
+
+GLM@evaluation
+GLM@variable.importance
+
+GBM@evaluation
+GBM@variable.importance
+
+CTA@evaluation
+CTA@variable.importance
+
+ANN@evaluation
+ANN@variable.importance
+
+SVM@evaluation
+SVM@variable.importance
+```
+#Model Forecasting 
+```{r}
+#Forecast for 2050
+sst1.5 <- raster("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/ENV data/sst1.5.tif")
+Env_new <- stack(bath, chlo, dist, sal, Env[[5]]+sst1.5, slope, velosE, velosN)
+
+#rename the changed sst layer to match the original Env stack
+Env_new1 <- setNames(Env_new, c("Bathymetry1", "Chlorophyll", "DistToShore", "Salinity", "SST", "Slope1", "EastVelosity", "NorthVelosity"))
+plot(Env_new1)
+
+#run 2050 forecast
+SDM_2050 <- SSDM::project(RF, Env_new1) 
+plot(SDM_2050)
+
+#save projection as a raster 
+writeRaster(SDM_2050@projection, “2050RFmodel.tif”, format = “GTiff”)
+
+##################################################################################
+#Forecast for 2100
+sst2 <- raster("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/ENV data/sst2.tif")
+Env2 <- stack(bath, chlo, dist, sal, Env[[5]]+sst2, slope, velosE, velosN)
+
+#rename the changed sst layer to match the original Env stack
+Env_new2 <- setNames(Env2, c("Bathymetry1", "Chlorophyll", "DistToShore", "Salinity", "SST", "Slope1", "EastVelosity", "NorthVelosity"))
+plot(Env_new2)
+
+#run 2100 forecast  
+SDM_2100 <- SSDM::project(RF, Env_new2)
+plot(SDM_2100)
+
+#save projection as a raster 
+writeRaster(SDM_2050@projection, “2100RFmodel.tif”, format = “GTiff”)
+```
