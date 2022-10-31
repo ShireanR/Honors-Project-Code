@@ -1,0 +1,150 @@
+#Libraries
+```{r}
+library(sdm)
+library(raster)
+library(sf)
+library(rgdal)
+library(ggplot2)
+```
+
+#Plot Habitat Suitability
+```{r}
+#import shapefile 
+Africa <- readOGR("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/Africa_Boundaries-shp/Africa_Boundaries.shp")
+
+#extract South Africa from the Africa shapefile 
+SA <- Africa[Africa$ISO == "ZAF", ]
+plot(RF@projection, main = 'RF Habitat Suitability', xlab = 'Longitude', ylab = 'Latitude')
+plot(Africa, add = TRUE)
+plot(SA, col = "grey", add=TRUE)
+```
+#Plot Species Density 
+```{r}
+r <- raster(sst)
+
+# 100 km = 1
+res(r) <- 1
+ext <- extent(3, 42, -41, -26)
+r <- crop(r, ext)
+
+rich <- rasterize(thinSRW[4:5], r, fun = 'count')
+plot(rich, main = 'Species Density per 1 degree', xlab = 'Longitude', ylab = 'Latitude') #, add = TRUE)
+plot(SA, col = "grey", add=TRUE)
+plot(Africa, add=TRUE)
+```
+#Plot Presence and Pseudo Absence Points (RF)
+```{r}
+sfthinSRW <- shapefile("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/SRW/thinSRW shape/thinedSRWshape.shp")
+colour <- c("blue", "black")
+plot(RF@data[1:2], main = 'Presence and Pseudo Absence Points for RF Algorithm', xlab = 'Longitude', ylab = 'Latitude', color = RF@data$Presence)
+plot(SA, col = "grey", add=TRUE)
+plot(Africa, add = TRUE)
+points(sfthinSRW, col='blue', cex = 1, pch = 20)
+legend("bottomright", legend = c("Presence", "Pseudo Absence"), fill = colour, bg ="white")
+```
+#Variable Importance Graph (RF)
+```{r}
+barplot(as.matrix(RF@variable.importance), 
+        col = "blue",
+        names.arg = c("Bath", "Chl" , "Dist","Sal", "SST", "Slope", "E_Vel", "N_Vel"),
+        ylab =" Variable Importantce ",
+        ylim = c(-10, 50))
+text(x = 1:length(as.matrix(RF@variable.importance)),
+     y = par("usr")[3] - 0.45,
+     labels = names(as.matrix(RF@variable.importance))
+```
+#Variable Importance Graph (all)
+```{r}
+barplot(rbind(as.matrix(ANN@variable.importance), 
+              as.matrix(CTA@variable.importance),
+              as.matrix(GBM@variable.importance),
+              as.matrix(GLM@variable.importance),
+              as.matrix(MARS@variable.importance),
+              as.matrix(RF@variable.importance),
+              as.matrix(SVM@variable.importance),
+              as.matrix(ssdm_srw@variable.importance)), 
+        col = c("orange", "red", "purple", "green", "light blue", "blue", "grey", "black"),
+        names.arg = c("Bath", "Chl" , "Dist","Sal", "SST", "Slope", "E_Vel", "N_Vel"),
+        ylab =" Variable Importantce ", 
+        main = "Variable Importantce per SDM",
+        beside = T)
+
+par(mar = c(10, 3, 3, 3), xpd = TRUE)
+
+legend("top",
+       horiz = T,
+       inset = c(0, 1.1),
+       cex = 0.95,
+       legend = c("ANN", "CTA", "GBM", "GLM", "MARS", "RF", "SVM", "ESDM"), 
+       fill = c("orange", "red", "purple", "green", "light blue", "blue", "grey", "black"),
+       bty = "n",
+       bg = NA)
+```
+#Performance Statistics Graph (RF)
+```{r}
+barplot(rbind(cbind(RF@evaluation$sensitivity + RF@evaluation$specificity - 1, 
+                    as.matrix(RF@evaluation[2:5]), 
+                    as.matrix(RF@evaluation[7]))),
+        col = "blue",
+        names.arg = c("TSS", "AUC", "Omission Rate", "Sensitivity", "Specificity", "Kappa"),
+        beside = T,
+        main = "RF Performance Statistics",
+        ylab = "Value",
+        ylim = c(0,1))
+```
+#Performance Statistics Graph (all)
+```{r}
+barplot(rbind(cbind(ANN@evaluation$sensitivity + ANN@evaluation$specificity - 1, 
+                    as.matrix(ANN@evaluation[2:5]), 
+                    as.matrix(ANN@evaluation[7])),
+              cbind(CTA@evaluation$sensitivity + CTA@evaluation$specificity - 1, 
+                    as.matrix(CTA@evaluation[2:5]), 
+                    as.matrix(CTA@evaluation[7])), 
+              cbind(GBM@evaluation$sensitivity + GBM@evaluation$specificity - 1, 
+                    as.matrix(GBM@evaluation[2:5]), 
+                    as.matrix(GBM@evaluation[7])),
+              cbind(GLM@evaluation$sensitivity + GLM@evaluation$specificity - 1, 
+                    as.matrix(GLM@evaluation[2:5]), 
+                    as.matrix(GLM@evaluation[7])), 
+              cbind(MARS@evaluation$sensitivity + MARS@evaluation$specificity - 1, 
+                    as.matrix(MARS@evaluation[2:5]), 
+                    as.matrix(MARS@evaluation[7])),
+              cbind(RF@evaluation$sensitivity + RF@evaluation$specificity - 1, 
+                    as.matrix(RF@evaluation[2:5]), 
+                    as.matrix(RF@evaluation[7])), 
+              cbind(SVM@evaluation$sensitivity + SVM@evaluation$specificity - 1, 
+                    as.matrix(SVM@evaluation[2:5]), 
+                    as.matrix(SVM@evaluation[7])),
+              cbind(ssdm_srw@evaluation$sensitivity + ssdm_srw@evaluation$specificity -1,
+                    as.matrix(ssdm_srw@evaluation[2:5]),
+                    as.matrix(ssdm_srw@evaluation[7]))),
+        col = c("orange", "red", "purple", "green", "light blue", "blue", "grey", "black"),
+        names.arg = c("TSS", "AUC", "Omission Rate", "Sensitivity", "Specificity", "Kappa"),
+        beside = T,
+        main = "SDM Performance Statistics",
+        ylab = "Value",
+        ylim = c(0,1))
+
+par(mar = c(10, 3, 3, 3), xpd = TRUE)
+
+legend("top", 
+       horiz = T,
+       inset = c(0, 1.1),
+       cex = 0.95,
+       legend = c("ANN", "CTA", "GBM", "GLM", "MARS", "RF", "SVM", "ESDM"), 
+       fill = c("orange", "red", "purple", "green", "light blue", "blue", "grey", "black"),
+       bty = "n",
+       bg = "white")
+```
+#Forecast Plots
+```{r}
+#2050
+plot(SDM_2050@projection, main = '2050 Forecast', xlab = 'Longitude', ylab = 'Latitude')
+plot(SA, col = "grey", add = TRUE)
+plot(Africa, add = TRUE)
+
+#2100
+plot(SDM_2100@projection, main = '2100 Forecast', xlab = 'Longitude', ylab = 'Latitude')
+plot(SA, col = "grey", add = TRUE)
+plot(Africa, add = TRUE)
+```
