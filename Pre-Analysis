@@ -1,0 +1,121 @@
+#Import libraries 
+```{r}
+library(raster)
+library(sp)
+library(rgdal)
+library(usdm)
+library(spThin)
+```
+#Import Environmental data 
+```{r}
+bath <- raster("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/Bathymetry/GEBCO_25_Mar_2022_1c78ba877cd2/Bathymetry1.tif")
+chlo <- raster("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/Chlorophyll data/avgChloro.tiff")
+dist <- raster("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/ArcGIS/Projects/SST map/DistanceToShore.tif")
+sal <- raster("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/Average TIFFs/avgSalinity.tiff")
+sst <- raster("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/Average TIFFs/avgSST.tiff")
+slope <- raster("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/Average TIFFs/slope1.tif")
+velosE <- raster("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/Average TIFFs/avgEvelocity.tiff")
+velosN <- raster("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/Average TIFFs/avgNvelocity.tiff")
+#Import Predicted SST data 
+sst1.5 <- raster("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/SST Predicted/CMIP6 - Sea Surface Temperature (SST) Change deg C - Warming 1.5°C SSP5-8.5 (rel. to 1850-1900) - June to August (26 models).tiff")
+sst2 <- raster("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/SST Predicted/CMIP6 - Sea Surface Temperature (SST) Change deg C - Warming 2°C SSP5-8.5 (rel. to 1850-1900) - June to August (26 models).tiff")
+```
+#Resample and crop the data to the same resolution
+```{r}
+#resample the data to the same resolution
+chlo <- resample(chlo, bath, method = "bilinear")
+dist <- resample(dist, bath, method = "bilinear")
+sal <- resample(sal, bath, method = "bilinear")
+sst <- resample(sst, bath, method = "bilinear")
+slope <- resample(slope, bath, method = "bilinear")
+velosE <- resample(velosE, bath, method = "bilinear")
+velosN <- resample(velosN, bath, method = "bilinear")
+sst1.5 <- resample(sst1.5, bath, method = "bilinear")
+sst2 <- resample(sst2, bath, method = "bilinear")
+
+#reduce the extent to the defined extent 
+ext <- extent(3, 42, -41, -26)
+
+#crop the sst layer to the extent (the sst layer does not have any values over land)
+sst <- crop(sst, ext)
+
+#mask the layers that they have nulls over the land area 
+bath <- mask(crop(bath, ext), sst)
+chlo <- mask(crop(chlo, ext), sst)
+dist <- mask(crop(dist, ext), sst)
+sal <- mask(crop(sal, ext), sst)
+slope <- mask(crop(slope, ext), sst)
+velosE <- mask(crop(velosE, ext), sst)
+velosN <- mask(crop(velosN, ext), sst)
+sst1.5 <- mask(crop(sst1.5, ext), sst)
+sst2 <- mask(crop(sst2, ext), sst)
+```
+#Convert Fahrenheit to Celsius 
+```{r}
+sst = calc(sst,fun = function(x) {x-273.15}) # convert to celcius
+#predicted SSTs are already in Celsius
+```
+#Convert Meters to Kilometers 
+```{r}
+dist = calc(dist,fun = function(x) {x/1000})
+```
+#Save environmental data as .tif
+```{r}
+writeRaster(bath, filename = file.path("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/ENV data", "Bathymetry1.tif"), format = "GTiff", overwrite = TRUE)
+writeRaster(chlo, filename = file.path("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/ENV data", "Chlorophyll.tif"), format = "GTiff", overwrite = TRUE)
+writeRaster(dist, filename = file.path("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/ENV data", "DistToShore.tif"), format = "GTiff", overwrite = TRUE)
+writeRaster(sal, filename = file.path("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/ENV data", "Salinity.tif"), format = "GTiff", overwrite = TRUE)
+writeRaster(slope, filename = file.path("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/ENV data", "Slope1.tif"), format = "GTiff", overwrite = TRUE)
+writeRaster(velosE, filename = file.path("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/ENV data", "EastVelocity.tif"), format = "GTiff", overwrite = TRUE)
+writeRaster(velosN, filename = file.path("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/ENV data", "NorthVelocity.tif"), format = "GTiff", overwrite = TRUE)
+writeRaster(sst1.5, filename = file.path("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/ENV data", "sst1.5.tif"), format = "GTiff", overwrite = TRUE)
+writeRaster(sst2, filename = file.path("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/ENV data", "sst2.tif"), format = "GTiff", overwrite = TRUE)
+```
+#Stack Env Data
+```{r}
+Env <- stack(bath, chlo, dist, sal, sst, slope, velosE, velosN)
+plot(Env)
+```
+#Calculate Variable inflation factor 
+```{r}
+vif(Env)
+```
+#Spatially thin the occurrence/ presence data
+```{r}
+thinSRW <- thin(loc.data = SRW,
+                lat.col = "Latitude",
+                long.col = "Longitude",
+                spec.col = "Species",
+                thin.par = 10,
+                reps = 100,
+                locs.thinned.list.return = TRUE, 
+                write.files = FALSE, 
+                #max.files = 5, 
+                #out.dir = "C:/Users/Shirean/Documents/GIS 702/SRW/", 
+                #out.base = "SRW_thinned", 
+                write.log.file = FALSE)
+                #, log.file = "SRW_thinned_full_log_file.txt")
+```
+#Plot the map with the SA shapefile and SRW sightings 
+```{r}
+#import shapefile 
+Africa <- readOGR("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/Africa_Boundaries-shp/Africa_Boundaries.shp")
+
+#extract South Africa from the Africa shapefile 
+SA <- Africa[Africa$ISO == "ZAF", ]
+
+#load the SRWs data
+SRW <- shapefile("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/SRW/SRWshape.shp")
+
+thinSRW <- shapefile("C:/Users/Shirean/OneDrive - University of Pretoria/Documents/GIS 702/SRW/thinedSRWshape.shp")
+
+#plot the thinned occurrence data on a map
+plot(Env, 4) #4th layer of the RasterStack
+plot(SA, add=TRUE) #note the "add=TRUE" argument with plot (allows for overlayering)
+points(thinSRW, col='blue')#with the points function, "add" is implicit (allows for overlayering)
+
+#plot the occurrence data on a map
+plot(Env, 4) #4th layer of the RasterStack
+plot(SA, add=TRUE) #note the "add=TRUE" argument with plot (allows for overlayering)
+points(SRW, col='red') #with the points function, "add" is implicit (allows for overlayering)
+```
